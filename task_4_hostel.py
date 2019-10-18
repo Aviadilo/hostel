@@ -79,7 +79,14 @@ class QueryMaker(Connection):
 
     def find_rooms_with_both_male_female(self):
         self.mycursor.execute("USE hostel")
-        self.mycursor.execute("SELECT * FROM students")
+        self.mycursor.execute(
+            "SELECT s.room FROM rooms r "
+            "LEFT JOIN students s ON r.id = s.room "
+            "WHERE s.sex IN ('F','M') "
+            "GROUP BY s.room "
+            "HAVING COUNT(DISTINCT s.sex) = 2 "
+            "ORDER BY s.room"
+        )
         myresult = self.mycursor.fetchall()
         return myresult
 
