@@ -1,5 +1,6 @@
 import mysql.connector
 import json
+import xmltodict
 
 
 class Connection:
@@ -55,14 +56,65 @@ class TableWriter(Connection):
         return operators
 
 
-class ReadingData():
-    """Class for reading data from file"""
+class QueryMaker(Connection):
+    """Class executes database queries"""
+
+    def count_students_in_rooms(self):
+        self.mycursor.execute("USE hostel")
+        self.mycursor.execute("SELECT * FROM students")
+        myresult = self.mycursor.fetchall()
+        return myresult
+
+    def find_the_yougest_age(self):
+        self.mycursor.execute("USE hostel")
+        self.mycursor.execute("SELECT * FROM students")
+        myresult = self.mycursor.fetchall()
+        return myresult
+
+    def find_the_biggest_age_diff(self):
+        self.mycursor.execute("USE hostel")
+        self.mycursor.execute("SELECT * FROM students")
+        myresult = self.mycursor.fetchall()
+        return myresult
+
+    def find_rooms_with_both_male_female(self):
+        self.mycursor.execute("USE hostel")
+        self.mycursor.execute("SELECT * FROM students")
+        myresult = self.mycursor.fetchall()
+        return myresult
+
+
+class ReadingData:
+    """Read data from file with specified format"""
 
     @staticmethod
     def read_file(file_name, file_format):
         with open('{}.{}'.format(file_name, file_format), 'r') as f:
             text_file = json.load(f)
         return text_file
+
+
+class WritingData():
+    """Write data to file with specified format"""
+
+    @staticmethod
+    def write_to_file(file_name, file_format, text):
+        if file_format.lower() == 'xml':
+            WritingData.write_to_file_xml(file_name, file_format, text)
+        else:
+            WritingData.write_to_file_json(file_name, file_format, text)
+
+    @staticmethod
+    def write_to_file_json(file_name, file_format, text):
+        with open('{}.{}'.format(file_name, file_format), 'w') as f:
+            json.dump(text, f)
+
+    @staticmethod
+    def write_to_file_xml(file_name, file_format, text):
+        dict_text = {'root': text}
+        xml_text = xmltodict.unparse(dict_text, pretty=True, full_document=False)
+        with open('{}.{}'.format(file_name, file_format), 'w') as f:
+            f.write(xml_text)
 
 
 def create_tables():
@@ -94,16 +146,35 @@ def make_students_values(full_list):
 
 
 def main():
+    # create database and tables
     db = DBCreator()
     db.create()
     create_tables()
+    db.disconnect()
+
+    # read files and insert data into tables
     rooms = ReadingData.read_file('rooms', 'json')
     students = ReadingData.read_file('students', 'json')
+
     rooms_values = make_room_values(rooms)
     students_values = make_students_values(students)
+
     writing = TableWriter()
     writing.insert_data(rooms_values, 'rooms', "id, name")
     writing.insert_data(students_values, 'students', "id, name, birthday, room, sex")
+    writing.disconnect()
+
+    # make queries
+    query_results = {}
+    myquery = QueryMaker()
+    query_results['the youngest age'] = myquery.find_the_yougest_age()
+    query_results['the biggest age diff'] = myquery.find_the_biggest_age_diff()
+    query_results['both male and female'] = myquery.find_rooms_with_both_male_female()
+    query_results['all rooms'] = myquery.count_students_in_rooms()
+    myquery.disconnect()
+
+    # write results to file
+    WritingData.write_to_file('query_results', 'json', query_results)
 
 
 if __name__ == "__main__":
