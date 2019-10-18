@@ -1,4 +1,5 @@
 import mysql.connector
+import json
 
 
 class Connection:
@@ -40,9 +41,28 @@ class TableCreator(Connection):
 class TableWriter(Connection):
     """Base class for inserting data into table"""
 
-    def insert_data(self, sql, value):
+    def insert_data(self, value, table_name, fields):
+        operators = self.__create_operators(fields)
         self.mycursor.execute("USE hostel")
+        sql = "INSERT INTO {} ({}) VALUES ({})".format(table_name, fields, operators)
         self.mycursor.executemany(sql, value)
+        self.mydb.commit()
+
+    def __create_operators(self, fields):
+        amount = len(fields.split(","))
+        operators = "%s,"*amount
+        operators = operators[:-1]
+        return operators
+
+
+class ReadingData():
+    """Class for reading data from file"""
+
+    @staticmethod
+    def read_file(file_name, file_format):
+        with open('{}.{}'.format(file_name, file_format), 'r') as f:
+            text_file = json.load(f)
+        return text_file
 
 
 def create_tables():
@@ -57,10 +77,33 @@ def create_tables():
     table.disconnect()
 
 
+def make_room_values(full_list):
+    values = []
+    for i in full_list:
+        one_value = (i['id'], i['name'])
+        values.append(one_value)
+    return values
+
+
+def make_students_values(full_list):
+    values = []
+    for i in full_list:
+        one_value = (i['id'], i['name'], i['birthday'], i['room'], i['sex'])
+        values.append(one_value)
+    return values
+
+
 def main():
     db = DBCreator()
     db.create()
     create_tables()
+    rooms = ReadingData.read_file('rooms', 'json')
+    students = ReadingData.read_file('students', 'json')
+    rooms_values = make_room_values(rooms)
+    students_values = make_students_values(students)
+    writing = TableWriter()
+    writing.insert_data(rooms_values, 'rooms', "id, name")
+    writing.insert_data(students_values, 'students', "id, name, birthday, room, sex")
 
 
 if __name__ == "__main__":
