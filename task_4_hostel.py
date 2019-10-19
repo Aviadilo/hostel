@@ -61,26 +61,50 @@ class QueryMaker(Connection):
 
     def count_students_in_rooms(self):
         self.mycursor.execute("USE hostel")
-        self.mycursor.execute("SELECT * FROM students")
+        self.mycursor.execute(
+            "SELECT r.id, r.name, COUNT(s.room) "
+            "FROM rooms r "
+            "LEFT JOIN students s ON r.id = s.room "
+            "GROUP BY s.room "
+            "ORDER BY s.room "
+        )
         myresult = self.mycursor.fetchall()
         return myresult
 
     def find_the_yougest_age(self):
         self.mycursor.execute("USE hostel")
-        self.mycursor.execute("SELECT * FROM students")
+        self.mycursor.execute(
+            "SELECT r.id, r.name, "
+            "AVG((YEAR(CURRENT_TIMESTAMP(0)) - YEAR(s.birthday)) - "
+            "(RIGHT(CURRENT_TIMESTAMP(0),5)<RIGHT(s.birthday,5))) AS age "
+            "FROM rooms r "
+            "LEFT JOIN students s ON r.id = s.room "
+            "GROUP BY s.room "
+            "HAVING age IS NOT NULL "
+            "ORDER BY age "
+            "LIMIT 5"
+        )
         myresult = self.mycursor.fetchall()
         return myresult
 
     def find_the_biggest_age_diff(self):
         self.mycursor.execute("USE hostel")
-        self.mycursor.execute("SELECT * FROM students")
+        self.mycursor.execute(
+            "SELECT r.id, r.name, (MAX(YEAR(s.birthday))-MIN(YEAR(s.birthday))) AS age_diff "
+            " FROM rooms r "
+            "LEFT JOIN students s ON r.id = s.room "
+            "GROUP BY s.room "
+            "ORDER BY age_diff DESC "
+            "LIMIT 5"
+        )
         myresult = self.mycursor.fetchall()
         return myresult
+
 
     def find_rooms_with_both_male_female(self):
         self.mycursor.execute("USE hostel")
         self.mycursor.execute(
-            "SELECT s.room FROM rooms r "
+            "SELECT r.id, r.name FROM rooms r "
             "LEFT JOIN students s ON r.id = s.room "
             "WHERE s.sex IN ('F','M') "
             "GROUP BY s.room "
@@ -124,6 +148,38 @@ class WritingData():
             f.write(xml_text)
 
 
+class ConverterQueryToDict:
+    """Class converts database queries to dictionary"""
+
+    @staticmethod
+    def convert_query_student_amount(query_list):
+        query_dict = {}
+        for i in query_list:
+            query_dict[str(i[0])] = {'room': i[1], 'student amount': i[2]}
+        return query_dict
+
+    @staticmethod
+    def convert_query_youngest_age(query_list):
+        query_dict = {}
+        for i in query_list:
+            query_dict[str(i[0])] = {'room': i[1], 'average age': int(i[2])}
+        return query_dict
+
+    @staticmethod
+    def convert_query_age_diff(query_list):
+        query_dict = {}
+        for i in query_list:
+            query_dict[str(i[0])] = {'room': i[1], 'age difference': int(i[2])}
+        return query_dict
+
+    @staticmethod
+    def convert_query_both_male_female(query_list):
+        query_dict = {}
+        for i in query_list:
+            query_dict[str(i[0])] = {'room': i[1]}
+        return query_dict
+
+
 def create_tables():
     table = TableCreator()
     room_name = "rooms"
@@ -152,36 +208,67 @@ def make_students_values(full_list):
     return values
 
 
-def main():
-    # create database and tables
+def create_database():
     db = DBCreator()
     db.create()
     create_tables()
     db.disconnect()
 
-    # read files and insert data into tables
-    rooms = ReadingData.read_file('rooms', 'json')
-    students = ReadingData.read_file('students', 'json')
 
+def read_files():
+    rooms_path = input('Enter file name containing rooms data')
+    rooms_format = input('Enter file format containing rooms data')
+    students_path = input('Enter file name containing students data')
+    students_format = input('Enter file format containing students data')
+    rooms = ReadingData.read_file(rooms_path, rooms_format)
+    students = ReadingData.read_file(students_path, students_format)
+    return rooms, students
+
+
+def insert_data(rooms, students):
     rooms_values = make_room_values(rooms)
     students_values = make_students_values(students)
-
     writing = TableWriter()
     writing.insert_data(rooms_values, 'rooms', "id, name")
     writing.insert_data(students_values, 'students', "id, name, birthday, room, sex")
     writing.disconnect()
 
-    # make queries
-    query_results = {}
-    myquery = QueryMaker()
-    query_results['the youngest age'] = myquery.find_the_yougest_age()
-    query_results['the biggest age diff'] = myquery.find_the_biggest_age_diff()
-    query_results['both male and female'] = myquery.find_rooms_with_both_male_female()
-    query_results['all rooms'] = myquery.count_students_in_rooms()
-    myquery.disconnect()
 
-    # write results to file
-    WritingData.write_to_file('query_results', 'json', query_results)
+def make_queries():
+    myquery = QueryMaker()
+    first = myquery.count_students_in_rooms()
+    second = myquery.find_the_yougest_age()
+    third = myquery.find_the_biggest_age_diff()
+    fourth = myquery.find_rooms_with_both_male_female()
+    myquery.disconnect()
+    return first, second, third, fourth
+
+
+def make_result_dictionary(first, second, third, fourth):
+    query_results = {}
+    query_results['students amount'] = ConverterQueryToDict.convert_query_student_amount(first)
+    query_results['the youngest age'] = ConverterQueryToDict.convert_query_youngest_age(second)
+    query_results['the biggest age diff'] = ConverterQueryToDict.convert_query_age_diff(third)
+    query_results['both male and female'] = ConverterQueryToDict.convert_query_both_male_female(fourth)
+    return query_results
+
+
+def main():
+    create_database()
+
+    try:
+        rooms, students = read_files()
+    except FileNotFoundError:
+        print("You entered incorrect file name/path/format. Please try again")
+        rooms, students = read_files()
+
+    insert_data(rooms, students)
+    first, second, third, fourth = make_queries()
+    query_results = make_result_dictionary(first, second, third, fourth)
+
+    result_path = input("Enter file name with result data")
+    result_format = input("Enter file format with result data")
+    WritingData.write_to_file(result_path, result_format, query_results)
 
 
 if __name__ == "__main__":
