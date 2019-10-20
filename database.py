@@ -59,6 +59,11 @@ class TableWriter(Connection):
 class QueryMaker(Connection):
     """Class executes database queries"""
 
+    def create_index(self, index_name, table_name, column_name,):
+        self.mycursor.execute("USE hostel")
+        self.mycursor.execute("CREATE INDEX {} ON {} ({})".format(index_name, table_name, column_name))
+        self.mydb.commit()
+
     def make_query(self, query_body):
         self.mycursor.execute("USE hostel")
         self.mycursor.execute(query_body)

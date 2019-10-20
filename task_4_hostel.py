@@ -69,6 +69,7 @@ class ProgramStarter:
 
     def _make_queries(self):
         myquery = QueryMaker(self.user, self.passwd)
+        myquery.create_index('st_room', 'students', 'room')
         first = myquery.make_query(QueryBodies.count_students_in_rooms)
         second = myquery.make_query(QueryBodies.find_the_yougest_age)
         third = myquery.make_query(QueryBodies.find_the_biggest_age_diff)
