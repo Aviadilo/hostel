@@ -1,152 +1,5 @@
-import mysql.connector
-import json
-import xmltodict
-
-
-class Connection:
-    """Base class for creating connection to the DB"""
-
-    def __init__(self, user_name, password):
-        self.user = user_name
-        self.passwd = password
-        self.mydb = self.connect()
-        self.mycursor = self.mydb.cursor()
-
-    def connect(self):
-        mydb = mysql.connector.connect(
-            host="localhost",
-            user=self.user,
-            passwd=self.passwd,
-        )
-        return mydb
-
-    def disconnect(self):
-        self.mycursor.close()
-        self.mydb.close()
-
-
-class DBCreator(Connection):
-    """Class for creating database"""
-
-    def create(self):
-        self.mycursor.execute("CREATE DATABASE hostel")
-        self.mydb.close()
-
-
-class TableCreator(Connection):
-    """Base class for creating table in database"""
-
-    def create(self, name, fields):
-        self.mycursor.execute("USE hostel")
-        self.mycursor.execute("CREATE TABLE {} ({})".format(name, fields))
-
-
-class TableWriter(Connection):
-    """Base class for inserting data into table"""
-
-    def insert_data(self, value, table_name, fields):
-        operators = self.__create_operators(fields)
-        self.mycursor.execute("USE hostel")
-        sql = "INSERT INTO {} ({}) VALUES ({})".format(table_name, fields, operators)
-        self.mycursor.executemany(sql, value)
-        self.mydb.commit()
-
-    def __create_operators(self, fields):
-        amount = len(fields.split(","))
-        operators = "%s," * amount
-        operators = operators[:-1]
-        return operators
-
-
-class QueryMaker(Connection):
-    """Class executes database queries"""
-
-    def count_students_in_rooms(self):
-        self.mycursor.execute("USE hostel")
-        self.mycursor.execute(
-            "SELECT r.id, r.name, COUNT(s.room) "
-            "FROM rooms r "
-            "LEFT JOIN students s ON r.id = s.room "
-            "GROUP BY s.room "
-            "ORDER BY s.room "
-        )
-        myresult = self.mycursor.fetchall()
-        return myresult
-
-    def find_the_yougest_age(self):
-        self.mycursor.execute("USE hostel")
-        self.mycursor.execute(
-            "SELECT r.id, r.name, "
-            "AVG((YEAR(CURRENT_TIMESTAMP(0)) - YEAR(s.birthday)) - "
-            "(RIGHT(CURRENT_TIMESTAMP(0),5)<RIGHT(s.birthday,5))) AS age "
-            "FROM rooms r "
-            "LEFT JOIN students s ON r.id = s.room "
-            "GROUP BY s.room "
-            "HAVING age IS NOT NULL "
-            "ORDER BY age "
-            "LIMIT 5"
-        )
-        myresult = self.mycursor.fetchall()
-        return myresult
-
-    def find_the_biggest_age_diff(self):
-        self.mycursor.execute("USE hostel")
-        self.mycursor.execute(
-            "SELECT r.id, r.name, (MAX(YEAR(s.birthday))-MIN(YEAR(s.birthday))) AS age_diff "
-            " FROM rooms r "
-            "LEFT JOIN students s ON r.id = s.room "
-            "GROUP BY s.room "
-            "ORDER BY age_diff DESC "
-            "LIMIT 5"
-        )
-        myresult = self.mycursor.fetchall()
-        return myresult
-
-    def find_rooms_with_both_male_female(self):
-        self.mycursor.execute("USE hostel")
-        self.mycursor.execute(
-            "SELECT r.id, r.name FROM rooms r "
-            "LEFT JOIN students s ON r.id = s.room "
-            "WHERE s.sex IN ('F','M') "
-            "GROUP BY s.room "
-            "HAVING COUNT(DISTINCT s.sex) = 2 "
-            "ORDER BY s.room"
-        )
-        myresult = self.mycursor.fetchall()
-        return myresult
-
-
-class ReadingData:
-    """Read data from file with specified format"""
-
-    @staticmethod
-    def read_file(file_name, file_format):
-        with open('{}.{}'.format(file_name, file_format), 'r') as f:
-            text_file = json.load(f)
-        return text_file
-
-
-class WritingData():
-    """Write data to file with specified format"""
-
-    @staticmethod
-    def write_to_file(file_name, file_format, text):
-        if file_format.lower() == 'xml':
-            WritingData.write_to_file_xml(file_name, file_format, text)
-        else:
-            WritingData.write_to_file_json(file_name, file_format, text)
-
-    @staticmethod
-    def write_to_file_json(file_name, file_format, text):
-        with open('{}.{}'.format(file_name, file_format), 'w') as f:
-            json.dump(text, f)
-
-    @staticmethod
-    def write_to_file_xml(file_name, file_format, text):
-        dict_text = {'root': text}
-        xml_text = xmltodict.unparse(dict_text, pretty=True, full_document=False)
-        with open('{}.{}'.format(file_name, file_format), 'w') as f:
-            f.write(xml_text)
+from database import DBCreator, TableCreator, TableWriter, QueryMaker
+from file_handling import DataReader, DataWriter
 
 
 class ConverterQueryToDict:
@@ -214,8 +67,8 @@ class ProgramStarter:
         students_path = input('Enter file name containing students data')
         students_format = input('Enter file format containing students data')
         try:
-            rooms = ReadingData.read_file(rooms_path, rooms_format)
-            students = ReadingData.read_file(students_path, students_format)
+            rooms = DataReader.read_file(rooms_path, rooms_format)
+            students = DataReader.read_file(students_path, students_format)
             self._insert_data(rooms, students)
         except FileNotFoundError:
             print("You entered incorrect file name/path/format. Please try again")
@@ -265,7 +118,7 @@ class ProgramStarter:
         result_path = input("Enter file name with result data")
         result_format = input("Enter file format with result data")
         try:
-            WritingData.write_to_file(result_path, result_format, query_results)
+            DataWriter.write_to_file(result_path, result_format, query_results)
         except FileNotFoundError:
             print("You entered incorrect file name/path/format. Please try again")
             self._write_data(query_results)
