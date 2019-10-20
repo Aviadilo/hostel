@@ -1,37 +1,6 @@
 from database import DBCreator, TableCreator, TableWriter, QueryMaker
+from queries import QueryBodies, ConverterQueryToDict
 from file_handling import DataReader, DataWriter
-
-
-class ConverterQueryToDict:
-    """Class converts database queries to dictionary"""
-
-    @staticmethod
-    def convert_query_student_amount(query_list):
-        query_dict = {}
-        for i in query_list:
-            query_dict[str(i[0])] = {'room': i[1], 'student amount': i[2]}
-        return query_dict
-
-    @staticmethod
-    def convert_query_youngest_age(query_list):
-        query_dict = {}
-        for i in query_list:
-            query_dict[str(i[0])] = {'room': i[1], 'average age': int(i[2])}
-        return query_dict
-
-    @staticmethod
-    def convert_query_age_diff(query_list):
-        query_dict = {}
-        for i in query_list:
-            query_dict[str(i[0])] = {'room': i[1], 'age difference': int(i[2])}
-        return query_dict
-
-    @staticmethod
-    def convert_query_both_male_female(query_list):
-        query_dict = {}
-        for i in query_list:
-            query_dict[str(i[0])] = {'room': i[1]}
-        return query_dict
 
 
 class ProgramStarter:
@@ -49,6 +18,7 @@ class ProgramStarter:
         self._create_tables()
         db.disconnect()
         self._read_files()
+
 
     def _create_tables(self):
         table = TableCreator(self.user, self.passwd)
@@ -99,10 +69,10 @@ class ProgramStarter:
 
     def _make_queries(self):
         myquery = QueryMaker(self.user, self.passwd)
-        first = myquery.count_students_in_rooms()
-        second = myquery.find_the_yougest_age()
-        third = myquery.find_the_biggest_age_diff()
-        fourth = myquery.find_rooms_with_both_male_female()
+        first = myquery.make_query(QueryBodies.count_students_in_rooms)
+        second = myquery.make_query(QueryBodies.find_the_yougest_age)
+        third = myquery.make_query(QueryBodies.find_the_biggest_age_diff)
+        fourth = myquery.make_query(QueryBodies.find_rooms_with_both_male_female)
         myquery.disconnect()
         self._make_result_dictionary(first, second, third, fourth)
 
