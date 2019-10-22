@@ -25,7 +25,7 @@ class ProgramStarter:
         room_name = "rooms"
         room_fields = "id INTEGER NOT NULL, name VARCHAR (10), PRIMARY KEY (id)"
         student_name = "students"
-        student_fields = "id INTEGER NOT NULL, name VARCHAR(255) NOT NULL, birthday DATETIME, room INTEGER NOT NULL," \
+        student_fields = "id INTEGER NOT NULL, name VARCHAR(255) NOT NULL, birthday DATE, room INTEGER NOT NULL," \
                          "sex VARCHAR(1) NOT NULL, PRIMARY KEY (id), FOREIGN KEY (room) REFERENCES rooms(id) ON DELETE CASCADE"
         table.create(room_name, room_fields)
         table.create(student_name, student_fields)
@@ -45,27 +45,18 @@ class ProgramStarter:
             self._read_files()
 
     def _insert_data(self, rooms, students):
-        rooms_values = self._make_room_values(rooms)
-        students_values = self._make_students_values(students)
+        rooms_fields, rooms_values = self.make_fields_and_values(rooms)
+        students_fields, students_values = self.make_fields_and_values(students)
         writing = TableWriter(self.user, self.passwd)
-        writing.insert_data(rooms_values, 'rooms', "id, name")
-        writing.insert_data(students_values, 'students', "id, name, birthday, room, sex")
+        writing.insert_data(rooms_values, 'rooms', rooms_fields)
+        writing.insert_data(students_values, 'students', students_fields)
         writing.disconnect()
         self._make_queries()
 
-    def _make_room_values(self, full_list):
-        values = []
-        for i in full_list:
-            one_value = (i['id'], i['name'])
-            values.append(one_value)
-        return values
-
-    def _make_students_values(self, full_list):
-        values = []
-        for i in full_list:
-            one_value = (i['id'], i['name'], i['birthday'], i['room'], i['sex'])
-            values.append(one_value)
-        return values
+    def make_fields_and_values(self, data):
+        fields = ','.join(list(data[0].keys()))
+        values = [tuple(i.values()) for i in data]
+        return fields, values
 
     def _make_queries(self):
         myquery = QueryMaker(self.user, self.passwd)
