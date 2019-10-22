@@ -1,5 +1,5 @@
 from database import DBCreator, TableCreator, TableWriter, QueryMaker
-from queries import QueryBodies, ConverterQueryToDict
+from queries import QueryBodies
 from file_handling import DataReader, DataWriter
 
 
@@ -61,20 +61,12 @@ class ProgramStarter:
     def _make_queries(self):
         myquery = QueryMaker(self.user, self.passwd)
         myquery.create_index('st_room', 'students', 'room')
-        first = myquery.make_query(QueryBodies.count_students_in_rooms)
-        second = myquery.make_query(QueryBodies.find_the_yougest_age)
-        third = myquery.make_query(QueryBodies.find_the_biggest_age_diff)
-        fourth = myquery.make_query(QueryBodies.find_rooms_with_both_male_female)
+        dict_result = {}
+        for key, value in QueryBodies.query_body.items():
+            result = myquery.make_query(query_body=value)
+            dict_result[key] = result
         myquery.disconnect()
-        self._make_result_dictionary(first, second, third, fourth)
-
-    def _make_result_dictionary(self, first, second, third, fourth):
-        query_results = {}
-        query_results['students amount'] = ConverterQueryToDict.convert_query_student_amount(first)
-        query_results['the youngest age'] = ConverterQueryToDict.convert_query_youngest_age(second)
-        query_results['the biggest age diff'] = ConverterQueryToDict.convert_query_age_diff(third)
-        query_results['both male and female'] = ConverterQueryToDict.convert_query_both_male_female(fourth)
-        self._write_data(query_results)
+        self._write_data(dict_result)
 
     def _write_data(self, query_results):
         result_path = input("Enter file name with result data")
