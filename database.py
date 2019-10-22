@@ -51,8 +51,7 @@ class TableWriter(Connection):
 
     def __create_operators(self, fields):
         amount = len(fields.split(","))
-        operators = "%s," * amount
-        operators = operators[:-1]
+        operators = ",".join(['%s']*amount)
         return operators
 
 
