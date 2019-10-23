@@ -32,19 +32,19 @@ class ProgramStarter:
         students_path = input('Enter file name containing students data')
         students_format = input('Enter file format containing students data')
         try:
-            rooms = DataReader.read_file(rooms_path, rooms_format)
-            students = DataReader.read_file(students_path, students_format)
-            self._insert_data(rooms, students)
+            data_to_insert = {}
+            data_to_insert['rooms'] = DataReader.read_file(rooms_path, rooms_format)
+            data_to_insert['students'] = DataReader.read_file(students_path, students_format)
+            self._insert_data(data_to_insert)
         except FileNotFoundError:
             print("You entered incorrect file name/path/format. Please try again")
             self._read_files()
 
-    def _insert_data(self, rooms, students):
-        rooms_fields, rooms_values = self._make_fields_and_values(rooms)
-        students_fields, students_values = self._make_fields_and_values(students)
+    def _insert_data(self, data_to_insert):
         writing = TableWriter(self.user, self.passwd, self.db_name)
-        writing.insert_data(rooms_values, 'rooms', rooms_fields)
-        writing.insert_data(students_values, 'students', students_fields)
+        for key, value in data_to_insert.items():
+            fields, values = self._make_fields_and_values(value)
+            writing.insert_data(values, key, fields)
         writing.disconnect()
         self._make_queries()
 
