@@ -6,7 +6,7 @@ class QueryBodies:
                                     "GROUP BY r.id "
                                     "ORDER BY r.id",
 
-        'the_youngest_age' : "SELECT r.id, r.name, AVG(DATEDIFF(CURRENT_DATE, s.birthday)/365) AS age "
+        'the_youngest_age' : "SELECT r.id, r.name, AVG(DATEDIFF(CURRENT_DATE, s.birthday)) AS age "
                              "FROM rooms r LEFT JOIN students s ON r.id = s.room "
                              "GROUP BY r.id "
                              "HAVING age IS NOT NULL "

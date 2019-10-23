@@ -8,28 +8,26 @@ class ProgramStarter:
     def __init__(self):
         self.user = input("Database user name")
         self.passwd = input("Database password")
+        self.db_name = input("Database name")
 
     def start_program(self):
         self._create_database()
 
     def _create_database(self):
-        db = DBCreator(self.user, self.passwd)
+        db = DBCreator(self.user, self.passwd, self.db_name)
         db.create()
-        self._create_tables()
         db.disconnect()
-        self._read_files()
-
+        self._create_tables()
 
     def _create_tables(self):
-        table = TableCreator(self.user, self.passwd)
-        room_name = "rooms"
+        table = TableCreator(self.user, self.passwd, self.db_name)
         room_fields = "id INTEGER NOT NULL, name VARCHAR (10), PRIMARY KEY (id)"
-        student_name = "students"
         student_fields = "id INTEGER NOT NULL, name VARCHAR(255) NOT NULL, birthday DATE, room INTEGER NOT NULL," \
                          "sex VARCHAR(1) NOT NULL, PRIMARY KEY (id), FOREIGN KEY (room) REFERENCES rooms(id) ON DELETE CASCADE"
-        table.create(room_name, room_fields)
-        table.create(student_name, student_fields)
+        table.create('rooms', room_fields)
+        table.create('students', student_fields)
         table.disconnect()
+        self._read_files()
 
     def _read_files(self):
         rooms_path = input('Enter file name containing rooms data')
@@ -45,21 +43,21 @@ class ProgramStarter:
             self._read_files()
 
     def _insert_data(self, rooms, students):
-        rooms_fields, rooms_values = self.make_fields_and_values(rooms)
-        students_fields, students_values = self.make_fields_and_values(students)
-        writing = TableWriter(self.user, self.passwd)
+        rooms_fields, rooms_values = self._make_fields_and_values(rooms)
+        students_fields, students_values = self._make_fields_and_values(students)
+        writing = TableWriter(self.user, self.passwd, self.db_name)
         writing.insert_data(rooms_values, 'rooms', rooms_fields)
         writing.insert_data(students_values, 'students', students_fields)
         writing.disconnect()
         self._make_queries()
 
-    def make_fields_and_values(self, data):
+    def _make_fields_and_values(self, data):
         fields = ','.join(list(data[0].keys()))
         values = [tuple(i.values()) for i in data]
         return fields, values
 
     def _make_queries(self):
-        myquery = QueryMaker(self.user, self.passwd)
+        myquery = QueryMaker(self.user, self.passwd, self.db_name)
         myquery.create_index('st_room', 'students', 'room')
         dict_result = {}
         for key, value in QueryBodies.query_body.items():
