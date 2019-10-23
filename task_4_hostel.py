@@ -1,5 +1,5 @@
 from .database import DBCreator, TableCreator, TableWriter, QueryMaker
-from .sql_bodies import QueryBodies
+from .sql_bodies import QueryBodies, TableFieldsBodies
 from .file_handling import DataReader, DataWriter
 
 
@@ -21,11 +21,8 @@ class ProgramStarter:
 
     def _create_tables(self):
         table = TableCreator(self.user, self.passwd, self.db_name)
-        room_fields = "id INTEGER NOT NULL, name VARCHAR (10), PRIMARY KEY (id)"
-        student_fields = "id INTEGER NOT NULL, name VARCHAR(255) NOT NULL, birthday DATE, room INTEGER NOT NULL," \
-                         "sex VARCHAR(1) NOT NULL, PRIMARY KEY (id), FOREIGN KEY (room) REFERENCES rooms(id) ON DELETE CASCADE"
-        table.create('rooms', room_fields)
-        table.create('students', student_fields)
+        for key, value in TableFieldsBodies.field.items():
+            table.create(key, value)
         table.disconnect()
         self._read_files()
 

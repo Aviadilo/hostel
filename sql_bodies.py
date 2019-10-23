@@ -13,17 +13,26 @@ class QueryBodies:
                              "ORDER BY age "
                              "LIMIT 5",
 
-        'find_the_biggest_age_diff' : "SELECT r.id, r.name, DATEDIFF(MAX(s.birthday), MIN(s.birthday)) AS age "
+        'the_biggest_age_diff' : "SELECT r.id, r.name, DATEDIFF(MAX(s.birthday), MIN(s.birthday)) AS age "
                                       "FROM rooms r "
                                       "LEFT JOIN students s ON r.id = s.room "
                                       "GROUP BY r.id "
                                       "ORDER BY age DESC "
                                       "LIMIT 5",
 
-        'find_rooms_with_both_male_female' : "SELECT r.id, r.name "
+        'rooms_with_both_male_female' : "SELECT r.id, r.name "
                                              "FROM rooms r "
                                              "LEFT JOIN students s ON r.id = s.room "
                                              "GROUP BY r.id "
                                              "HAVING COUNT(DISTINCT s.sex) > 1 "
                                              "ORDER BY r.id"
+    }
+
+
+class TableFieldsBodies:
+    field = {
+        'rooms': 'id INTEGER NOT NULL, name VARCHAR (10), PRIMARY KEY (id)',
+
+        'students': 'id INTEGER NOT NULL, name VARCHAR(255) NOT NULL, birthday DATE, room INTEGER NOT NULL, sex VARCHAR(1) NOT NULL, '
+                    'PRIMARY KEY (id), FOREIGN KEY (room) REFERENCES rooms(id) ON DELETE CASCADE'
     }
