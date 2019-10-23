@@ -1,6 +1,6 @@
-from database import DBCreator, TableCreator, TableWriter, QueryMaker
-from queries import QueryBodies
-from file_handling import DataReader, DataWriter
+from .database import DBCreator, TableCreator, TableWriter, QueryMaker
+from .sql_bodies import QueryBodies
+from .file_handling import DataReader, DataWriter
 
 
 class ProgramStarter:
